@@ -153,8 +153,8 @@ def resume_from_args(args_path, gen_ckpt_path, dis_ckpt_path):
         dis, opt_dis
     """
 
-    from models.generators import resnet64
-    from models.discriminators import snresnet64
+    from models.generator import resnet64
+    from models.discriminator import snresnet64
 
     with open(args_path) as f:
         args = json.load(f)

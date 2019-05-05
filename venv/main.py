@@ -18,9 +18,9 @@ import tqdm
 
 import evaluation
 import losses as L
-from models.discriminator.discriminator_64 import SNResNetConcatDiscriminator
-from models.discriminator.discriminator_64 import SNResNetProjectionDiscriminator
-from models.generator.generator_64 import ResNetGenerator
+from models.discriminator.snresnet64 import SNResNetConcatDiscriminator
+from models.discriminator.snresnet64 import SNResNetProjectionDiscriminator
+from models.generator.resnet64 import ResNetGenerator
 from models import inception
 import utils
 
@@ -70,7 +70,7 @@ def prepare_results_dir(args):
     else:
         writer = None
 
-    train_image_root = os.path.join(root, "preview", "train")
+    train_image_root = os.path.join(root, "preview", "train_arch")
     eval_image_root = os.path.join(root, "preview", "eval")
     os.makedirs(train_image_root, exist_ok=True)
     os.makedirs(eval_image_root, exist_ok=True)
@@ -108,7 +108,7 @@ def get_args():
                         help='to train cGAN, set this ``True``. default: False')
     parser.add_argument('--data_root', type=str, default='tiny-imagenet-200',
                         help='path to dataset root directory. default: tiny-imagenet-200')
-    parser.add_argument('--batch_size', '-B', type=int, default=64,
+    parser.add_argument('--batch_size', '-B', type=int, default=16,
                         help='mini-batch size of training data. default: 64')
     parser.add_argument('--eval_batch_size', '-eB', default=None,
                         help='mini-batch size of evaluation data. default: None')
@@ -137,12 +137,12 @@ def get_args():
                         help='beta1 (betas[0]) value of Adam. default: 0.0')
     parser.add_argument('--beta2', type=float, default=0.9,
                         help='beta2 (betas[1]) value of Adam. default: 0.9')
-    parser.add_argument('--lr_decay_start', '-lds', type=int, default=50000,
+    parser.add_argument('--lr_decay_start', '-lds', type=int, default=5000,
                         help='Start point of learning rate decay. default: 50000')
     # Training setting
     parser.add_argument('--seed', type=int, default=46,
                         help='Random seed. default: 46 (derived from Nogizaka46)')
-    parser.add_argument('--max_iteration', '-N', type=int, default=100000,
+    parser.add_argument('--max_iteration', '-N', type=int, default=10000,
                         help='Max iteration number of training. default: 100000')
     parser.add_argument('--n_dis', type=int, default=5,
                         help='Number of discriminator updater per generator updater. default: 5')
@@ -161,23 +161,29 @@ def get_args():
                         help='If you dislike tensorboard, set this ``False``. default: True')
     parser.add_argument('--no_image', action='store_true', default=False,
                         help='If you dislike saving images on tensorboard, set this ``True``. default: False')
-    parser.add_argument('--checkpoint_interval', '-ci', type=int, default=1000,
+    parser.add_argument('--checkpoint_interval', '-ci', type=int, default=500,
                         help='Interval of saving checkpoints (model and optimizer). default: 1000')
     parser.add_argument('--log_interval', '-li', type=int, default=100,
                         help='Interval of showing losses. default: 100')
-    parser.add_argument('--eval_interval', '-ei', type=int, default=1000,
+    parser.add_argument('--eval_interval', '-ei', type=int, default=500,
                         help='Interval for evaluation (save images and FID calculation). default: 1000')
     parser.add_argument('--n_eval_batches', '-neb', type=int, default=100,
                         help='Number of mini-batches used in evaluation. default: 100')
-    parser.add_argument('--n_fid_images', '-nfi', type=int, default=5000,
+    parser.add_argument('--n_fid_images', '-nfi', type=int, default=1000,
                         help='Number of images to calculate FID. default: 5000')
     parser.add_argument('--test', default=False, action='store_true',
                         help='If test this python program, set this ``True``. default: False')
     # Resume training
-    parser.add_argument('--args_path', default='/checkpoint/args', help='Checkpoint args json path. default: None')
-    parser.add_argument('--gen_ckpt_path', '-gcp', default='/checkpoint/generator',
+    # parser.add_argument('--args_path', type=str, default='./results/SNGAN/190503_1657/args.json', help='Checkpoint args json path. default: None')
+    # parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default='gen_latest.pth.tar',
+    #                     help='Generator and optimizer checkpoint path. default: None')
+    # parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_latest.pth.tar',
+    #                     help='Discriminator and optimizer checkpoint path. default: None')
+    parser.add_argument('--args_path', type=str, default=None,
+                        help='Checkpoint args json path. default: None')
+    parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default=None,
                         help='Generator and optimizer checkpoint path. default: None')
-    parser.add_argument('--dis_ckpt_path', '-dcp', default='/checkpoint/discriminator',
+    parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default=None,
                         help='Discriminator and optimizer checkpoint path. default: None')
     args = parser.parse_args()
     return args
@@ -236,8 +242,10 @@ def main():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
     torch.backends.cudnn.benchmark = True
 
+    # def _rescale(img):
+    #     return img * 2.0 - 1.0
     def _rescale(img):
-        return img * 2.0 - 1.0
+        return img - 1.0
 
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1/128.0) + img
@@ -252,7 +260,7 @@ def main():
     train_loader = iter(data.DataLoader(
         train_dataset, args.batch_size,
         sampler=InfiniteSamplerWrapper(train_dataset),
-        num_workers=args.num_workers, pin_memory=True)
+        pin_memory=True)
     )
     if args.calc_FID:
         eval_dataset = datasets.ImageFolder(

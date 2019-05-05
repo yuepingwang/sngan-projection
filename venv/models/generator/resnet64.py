@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 
-from models.generator.g_resblocks import Block
+from models.generator.resblocks import Block
 
 
 class ResNetGenerator(nn.Module):
