@@ -104,11 +104,11 @@ def decay_lr(opt, max_iter, start_iter, initial_lr):
 def get_args():
     parser = argparse.ArgumentParser()
     # Dataset configuration
-    parser.add_argument('--cGAN', default=False, action='store_true',
+    parser.add_argument('--cGAN', default=True, action='store_true',
                         help='to train cGAN, set this ``True``. default: False')
-    parser.add_argument('--data_root', type=str, default='tiny-imagenet-200',
+    parser.add_argument('--data_root', type=str, default='smaller_images',
                         help='path to dataset root directory. default: tiny-imagenet-200')
-    parser.add_argument('--batch_size', '-B', type=int, default=16,
+    parser.add_argument('--batch_size', '-B', type=int, default=64,
                         help='mini-batch size of training data. default: 64')
     parser.add_argument('--eval_batch_size', '-eB', default=None,
                         help='mini-batch size of evaluation data. default: None')
@@ -169,7 +169,7 @@ def get_args():
                         help='Interval for evaluation (save images and FID calculation). default: 1000')
     parser.add_argument('--n_eval_batches', '-neb', type=int, default=100,
                         help='Number of mini-batches used in evaluation. default: 100')
-    parser.add_argument('--n_fid_images', '-nfi', type=int, default=1000,
+    parser.add_argument('--n_fid_images', '-nfi', type=int, default=5000,
                         help='Number of images to calculate FID. default: 5000')
     parser.add_argument('--test', default=False, action='store_true',
                         help='If test this python program, set this ``True``. default: False')
@@ -179,12 +179,24 @@ def get_args():
     #                     help='Generator and optimizer checkpoint path. default: None')
     # parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_latest.pth.tar',
     #                     help='Discriminator and optimizer checkpoint path. default: None')
-    parser.add_argument('--args_path', type=str, default=None,
+    # parser.add_argument('--args_path', type=str, default='./results/SNGAN/190505_0037/args.json',
+    #                     help='Checkpoint args json path. default: None')
+    # parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default='gen_latest.pth.tar',
+    #                     help='Generator and optimizer checkpoint path. default: None')
+    # parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_latest.pth.tar',
+    #                     help='Discriminator and optimizer checkpoint path. default: None')
+    parser.add_argument('--args_path', type=str, default='./results/cGAN/190505_2244/args.json',
                         help='Checkpoint args json path. default: None')
-    parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default=None,
+    parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default='gen_8_iter_0008000.pth.tar',
                         help='Generator and optimizer checkpoint path. default: None')
-    parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default=None,
+    parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_8_iter_0008000.pth.tar',
                         help='Discriminator and optimizer checkpoint path. default: None')
+    # parser.add_argument('--args_path', type=str, default=None,
+    #                      help='Checkpoint args json path. default: None')
+    # parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default=None,
+    #                      help='Generator and optimizer checkpoint path. default: None')
+    # parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default=None,
+    #                      help='Discriminator and optimizer checkpoint path. default: None')
     args = parser.parse_args()
     return args
 
@@ -242,10 +254,10 @@ def main():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
     torch.backends.cudnn.benchmark = True
 
-    # def _rescale(img):
-    #     return img * 2.0 - 1.0
     def _rescale(img):
-        return img - 1.0
+        return img*2 - 1.0
+    # def _rescale(img):
+    #     return img - 1.0
 
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1/128.0) + img
