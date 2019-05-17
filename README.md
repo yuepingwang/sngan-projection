@@ -32,6 +32,7 @@ It is implemented in the Discriminator's residual blocks using PyTorch's *torch.
 '''
 
 The cGAN paper introduced a new way to add conditioning to the network. While earlier works on conditional GANs explored ways to concatenate the class-encoding vector *y* into part of the network, the authors of *cGAN with Projection Discriminators* shows that by incorporating *y* as an inner product with the network, it can more effectively interact with the hidden layers of the network and allow for more stable training.
+
 ![Comparisons of different conditioning for the discriminator](images/cgan_paper_fig1.png)
 
 To implement class-conditional batch normalization, we first need to create a base class for conditional batch normalization. This should both inherit from PyTorch's BatchNorm2d class, and introduce the conditional weighting and bias terms for the batch normalization layer:
@@ -103,16 +104,20 @@ class CategoricalConditionalBatchNorm2d(ConditionalBatchNorm2d):
 For training, I used the [Tiny ImageNet](https://tiny-imagenet.herokuapp.com/) dataset, which by default contains 64*64 images from 200 categories.
 
 I first trained using only the spectrial normalization GAN, without conditioning on class labels. While the result after 40000 iterations shows improvements in capturing edges and textures, it is far from synthesizing high level features.
+
 ![output1_sngan](images/output1_sngan.png)
 
 I then used cGAN to train for the same dataset. However, the output images after the same number of interations didn't show better class-based features than the spectrial normalization GAN. 
 My interpretation is that the total number of classes for a GAN can not be arbitrarily large. The number of categories to train for should depend on the network's input feature size.
+
 ![output0](images/output0.png)
 
 Eventually, I trained with a smaller number of image classes, and was able to get class-specific generative results. 
-![output1](images/output1.png)
+
+![output1](images/output1.jpg)
 
 I also noticed that the training is significantly faster when the training images have simpler geometries and textures. For example, to train for 6 categories of geometric shapes only took 6000 interations to get a good result. his allows me to quickly test out feature interpolation.
+
 ![colors_1](images/colors_1.jpg) ![interpolate](images/interpolate.jpg)
 
 Here is a [link](https://colab.research.google.com/drive/1HLZBceHtiz_aTjNw_QP1yGB7HFJYePAv) to Colab Demo for using the Generator and mixing class features for the output image.
