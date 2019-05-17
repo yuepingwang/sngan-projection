@@ -170,11 +170,11 @@ def resume_from_args(args_path, gen_ckpt_path, dis_ckpt_path):
     )
     # Initialize discriminator
     if args['dis_arch_concat']:
-        dis = snresnet128.SNResNetConcatDiscriminator(
+        dis = snresnet64.SNResNetConcatDiscriminator(
             args['dis_num_features'], num_classes, dim_emb=args['dis_emb']
         )
     else:
-        dis = snresnet128.SNResNetProjectionDiscriminator(
+        dis = snresnet64.SNResNetProjectionDiscriminator(
             args['dis_num_features'], num_classes
         )
     opt_dis = torch.optim.Adam(

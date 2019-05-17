@@ -116,20 +116,20 @@ def get_args():
                         help='Number of workers for training data loader. default: 8')
     # Generator configuration
     parser.add_argument('--gen_num_features', '-gnf', type=int, default=64,
-                        help='Number of features of generator (a.k.a. nplanes or ngf). default: 64')
+                        help='Number of features of generator. default: 64')
     parser.add_argument('--gen_dim_z', '-gdz', type=int, default=128,
                         help='Dimension of generator input noise. default: 128')
     parser.add_argument('--gen_bottom_width', '-gbw', type=int, default=4,
                         help='Initial size of hidden variable of generator. default: 4')
     parser.add_argument('--gen_distribution', '-gd', type=str, default='normal',
                         help='Input noise distribution: normal (default) or uniform.')
-    # Discriminator (Critic) configuration
+    # Discriminator configuration
     parser.add_argument('--dis_arch_concat', '-concat', default=False, action='store_true',
                         help='If use concat discriminator, set this true. default: False')
     parser.add_argument('--dis_emb', type=int, default=128,
                         help='Parameter for concat discriminator. default: 128')
     parser.add_argument('--dis_num_features', '-dnf', type=int, default=64,
-                        help='Number of features of discriminator (a.k.a nplanes or ndf). default: 64')
+                        help='Number of features of discriminator. default: 64')
     # Optimizer settings
     parser.add_argument('--lr', type=float, default=0.0002,
                         help='Initial learning rate of Adam. default: 0.0002')
@@ -137,12 +137,12 @@ def get_args():
                         help='beta1 (betas[0]) value of Adam. default: 0.0')
     parser.add_argument('--beta2', type=float, default=0.9,
                         help='beta2 (betas[1]) value of Adam. default: 0.9')
-    parser.add_argument('--lr_decay_start', '-lds', type=int, default=5000,
+    parser.add_argument('--lr_decay_start', '-lds', type=int, default=100001,
                         help='Start point of learning rate decay. default: 50000')
     # Training setting
     parser.add_argument('--seed', type=int, default=46,
                         help='Random seed. default: 46 (derived from Nogizaka46)')
-    parser.add_argument('--max_iteration', '-N', type=int, default=10000,
+    parser.add_argument('--max_iteration', '-N', type=int, default=100000,
                         help='Max iteration number of training. default: 100000')
     parser.add_argument('--n_dis', type=int, default=5,
                         help='Number of discriminator updater per generator updater. default: 5')
@@ -161,11 +161,11 @@ def get_args():
                         help='If you dislike tensorboard, set this ``False``. default: True')
     parser.add_argument('--no_image', action='store_true', default=False,
                         help='If you dislike saving images on tensorboard, set this ``True``. default: False')
-    parser.add_argument('--checkpoint_interval', '-ci', type=int, default=500,
+    parser.add_argument('--checkpoint_interval', '-ci', type=int, default=1000,
                         help='Interval of saving checkpoints (model and optimizer). default: 1000')
     parser.add_argument('--log_interval', '-li', type=int, default=100,
                         help='Interval of showing losses. default: 100')
-    parser.add_argument('--eval_interval', '-ei', type=int, default=500,
+    parser.add_argument('--eval_interval', '-ei', type=int, default=1000,
                         help='Interval for evaluation (save images and FID calculation). default: 1000')
     parser.add_argument('--n_eval_batches', '-neb', type=int, default=100,
                         help='Number of mini-batches used in evaluation. default: 100')
@@ -174,43 +174,18 @@ def get_args():
     parser.add_argument('--test', default=False, action='store_true',
                         help='If test this python program, set this ``True``. default: False')
     # Resume training
-    # parser.add_argument('--args_path', type=str, default='./results/SNGAN/190503_1657/args.json', help='Checkpoint args json path. default: None')
-    # parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default='gen_latest.pth.tar',
-    #                     help='Generator and optimizer checkpoint path. default: None')
-    # parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_latest.pth.tar',
-    #                     help='Discriminator and optimizer checkpoint path. default: None')
-    # parser.add_argument('--args_path', type=str, default='./results/SNGAN/190505_0037/args.json',
-    #                     help='Checkpoint args json path. default: None')
-    # parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default='gen_latest.pth.tar',
-    #                     help='Generator and optimizer checkpoint path. default: None')
-    # parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_latest.pth.tar',
-    #                     help='Discriminator and optimizer checkpoint path. default: None')
-    parser.add_argument('--args_path', type=str, default='./results/cGAN/190505_2244/args.json',
+    parser.add_argument('--args_path', type=str, default='./results/cGAN/190515_1531/args.json',
                         help='Checkpoint args json path. default: None')
-    parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default='gen_8_iter_0008000.pth.tar',
+    parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default='gen_latest.pth.tar',
                         help='Generator and optimizer checkpoint path. default: None')
-    parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_8_iter_0008000.pth.tar',
+    parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default='dis_latest.pth.tar',
                         help='Discriminator and optimizer checkpoint path. default: None')
-    # parser.add_argument('--args_path', type=str, default=None,
-    #                      help='Checkpoint args json path. default: None')
-    # parser.add_argument('--gen_ckpt_path', '-gcp', type=str, default=None,
-    #                      help='Generator and optimizer checkpoint path. default: None')
-    # parser.add_argument('--dis_ckpt_path', '-dcp', type=str, default=None,
-    #                      help='Discriminator and optimizer checkpoint path. default: None')
     args = parser.parse_args()
     return args
 
 
+# sample real images. If training for cGAN, store the directory indices as the class indices (y)
 def sample_from_data(args, device, data_loader):
-    """Sample real images and labels from data_loader.
-    Args:
-        args (argparse object)
-        device (torch.device)
-        data_loader (DataLoader)
-    Returns:
-        real, y
-    """
-
     real, y = next(data_loader)
     real, y = real.to(device), y.to(device)
     if not args.cGAN:
@@ -218,17 +193,9 @@ def sample_from_data(args, device, data_loader):
     return real, y
 
 
+# sample radon input for the generator.
+# If training for cGAN, first randomly sample for class label, them sample the input vector.
 def sample_from_gen(args, device, num_classes, gen):
-    """Sample fake images and labels from generator.
-    Args:
-        args (argparse object)
-        device (torch.device)
-        num_classes (int): for pseudo_y
-        gen (nn.Module)
-    Returns:
-        fake, pseudo_y, z
-    """
-
     z = utils.sample_z(
         args.batch_size, args.gen_dim_z, device, args.gen_distribution
     )
@@ -245,9 +212,9 @@ def sample_from_gen(args, device, num_classes, gen):
 
 def main():
     args = get_args()
-    # CUDA setting
+    # Set CUDA
     if not torch.cuda.is_available():
-        raise ValueError("Should buy GPU!")
+        raise ValueError("CUDA not found.")
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     device = torch.device('cuda')
@@ -256,13 +223,11 @@ def main():
 
     def _rescale(img):
         return img*2 - 1.0
-    # def _rescale(img):
-    #     return img - 1.0
 
     def _noise_adder(img):
         return torch.empty_like(img, dtype=img.dtype).uniform_(0.0, 1/128.0) + img
 
-    # dataset
+    # Set dataset path
     train_dataset = datasets.ImageFolder(
         os.path.join(args.data_root, 'train'),
         transforms.Compose([
@@ -291,8 +256,10 @@ def main():
     num_classes = len(train_dataset.classes)
     print(' prepared datasets...')
     print(' Number of training images: {}'.format(len(train_dataset)))
-    # Prepare directories.
+
+    # set number of classes to be equal to number of image folders
     args.num_classes = num_classes
+    # Prepare directories,
     args, writer = prepare_results_dir(args)
     # initialize models.
     _n_cls = num_classes if args.cGAN else 0
@@ -311,8 +278,6 @@ def main():
     opt_gen = optim.Adam(gen.parameters(), args.lr, (args.beta1, args.beta2))
     opt_dis = optim.Adam(dis.parameters(), args.lr, (args.beta1, args.beta2))
 
-    # gen_criterion = getattr(L, 'gen_{}'.format(args.loss_type))
-    # dis_criterion = getattr(L, 'dis_{}'.format(args.loss_type))
     gen_criterion = L.GenLoss(args.loss_type, args.relativistic_loss)
     dis_criterion = L.DisLoss(args.loss_type, args.relativistic_loss)
     print(' Initialized models...\n')
@@ -323,14 +288,10 @@ def main():
             args.args_path, args.gen_ckpt_path, args.dis_ckpt_path
         )
 
-    # Training loop
+    # Training
     for n_iter in tqdm.tqdm(range(1, args.max_iteration + 1)):
 
-        if n_iter >= args.lr_decay_start:
-            decay_lr(opt_gen, args.max_iteration, args.lr_decay_start, args.lr)
-            decay_lr(opt_dis, args.max_iteration, args.lr_decay_start, args.lr)
-
-        # ==================== Beginning of 1 iteration. ====================
+        # Beginning of iteration
         _l_g = .0
         cumulative_loss_dis = .0
         for i in range(args.n_dis):
@@ -365,7 +326,7 @@ def main():
             if n_iter % 10 == 0 and i == args.n_dis - 1 and writer is not None:
                 cumulative_loss_dis /= args.n_dis
                 writer.add_scalar('dis', cumulative_loss_dis / args.n_dis, n_iter)
-        # ==================== End of 1 iteration. ====================
+        # End of iteration
 
         if n_iter % args.log_interval == 0:
             tqdm.tqdm.write(
@@ -384,14 +345,12 @@ def main():
                 args.train_image_root, fake, real
             )
         if n_iter % args.checkpoint_interval == 0:
-            # Save checkpoints!
+            # Save checkpoint
             utils.save_checkpoints(
                 args, n_iter, n_iter // args.checkpoint_interval,
                 gen, opt_gen, dis, opt_dis
             )
         if n_iter % args.eval_interval == 0:
-            # TODO (crcrpar): implement Ineption score, FID, and Geometry score
-            # Once these criterion are prepared, val_loader will be used.
             fid_score = evaluation.evaluate(
                 args, n_iter, gen, device, inception_model, eval_loader
             )
@@ -400,7 +359,7 @@ def main():
                     n_iter, args.max_iteration, fid_score))
             if writer is not None:
                 writer.add_scalar("FID", fid_score, n_iter)
-                # Project embedding weights if exists.
+                # If training for cGAN, store the embedding weights
                 embedding_layer = getattr(dis, 'l_y', None)
                 if embedding_layer is not None:
                     writer.add_embedding(
@@ -414,24 +373,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# import argparse
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
-# import torch.optim as optim
-# from torch.optim.lr_scheduler import ExponentialLR
-# from torchvision import datasets, transforms
-# from torch.autograd import Variable
-#
-# import model
-#
-# import numpy as np
-# import matplotlib
-# matplotlib.use('Agg')
-# import matplotlib.pyplot as plt
-# import matplotlib.gridspec as gridspec
-# import os
-#
-#
-#
